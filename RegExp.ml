@@ -1,7 +1,7 @@
 (* RegExp module body *)
 
-(* Aluno 1: José Duarte ALmeida nº50838
-Aluno 2: Tomás Rocha Pereira nº50285
+(* Aluno 1: JosÃ© Duarte ALmeida nÂº50838
+Aluno 2: TomÃ¡s Rocha Pereira nÂº50285
 
 Comment:
 
@@ -68,19 +68,18 @@ let rec matchAtStartRE line re =
     match re with
       | Zero p -> (true, [], line)
       | _ -> (false, [], [])
-			| Any -> (true, List.hd line, List.tl line)
-			| Str s
-			| Class 
-			| NCLass
-			| Seq
-			| Or
-			| Not
-			| ZeroOrOne
-			| ZeroOrMore
-			| OneOrMore 
-			| Repeat
+      | Any -> (true, List.hd line, List.tl line)
+      | Str str -> matchAtStartStr line (list_of_string str)
 ;;
 
+let rec matchAtStartStr line str_list = 
+	match line, str_list with
+		[],_ - > (false, [], [])
+		| _,[] -> (true, [], line)
+		| x::xs,y::ys -> let(b, re, rest) = matchAtStartStr xs ys in
+						if x=y && b then (b, y::re, rest) 
+						else (false, [], [])
+;;
 
 let matchAtStart line re =
     let (b,m,r) = matchAtStartRE (list_of_string line) re in
