@@ -70,15 +70,51 @@ let rec matchAtStartRE line re =
       | _ -> (false, [], [])
       | Any -> (true, List.hd line, List.tl line)
       | Str str -> matchAtStartStr line (list_of_string str)
+			| Class str -> match line with
+					[] -> (false, [], [])
+					|x::xs -> if str_contain_elem (list_of_string str) x 
+							then (true, [x], xs)
+							else (false, [], [])
+			| NClass str -> match line with
+						[] -> (false, [], [])
+						|x::xs -> if str_contain_elem (list_of_string str) x 
+								then (false, [], [])
+								else (true, [x], xs)
+			| Seq (p,q) -> let (b1, m1, r1) = matchAtStartRE line p in
+					if b1 then let (b2, m2, r2) = matchAtStartRE r q in
+						if b2 then (b2, m1::m2, r2)
+						else (false,[],[])
+					else (false,[],[])
+			| Or (p,q) -> let (b1, m1, r1) = matchAtStartRE line p in
+					let (b2, m2, r2) = matchAtStartRE line q in
+						if b1 & b2 
+						then 
+							if List.length m1 >= List.length m2 
+								then (b1, m1, r1)
+								else (b2, m2, r2)
+						else if b1 then (b1, m1, r1)
+						else if b2 then (b2, m2, r1)
+						else (false,[],[])
+			| ZeroOrOne p -> let (b, m, r) = matchAtStartRE line p in 
+						if b then (b, m, r) 
+						else (true,[],line)
+			| ZeroOrMore p -> let (b, m, r) = matchAtStartRE line p in
+						if b then matchAtStartRE r p
 ;;
 
-let rec matchAtStartStr line str_list = 
-	match line, str_list with
-		[],_ - > (false, [], [])
+let rec str_contain_elem str_in_list elem =
+		match str_in_list with
+		| [] -> false
+		| x::xs -> if x = elem then true 
+							 else str_contain_elem xs elem
+
+let rec matchAtStartStr line str_in_list =
+	match line, str_in_list with
+		[],_ -> (false, [], [])
 		| _,[] -> (true, [], line)
-		| x::xs,y::ys -> let(b, re, rest) = matchAtStartStr xs ys in
-						if x=y && b then (b, y::re, rest) 
-						else (false, [], [])
+		| x::xs,y::ys -> let(b, m, r) = matchAtStartStr xs ys in
+											if x=y && b then (b, y::m, r) 
+											else (false, [], [])
 ;;
 
 let matchAtStart line re =
