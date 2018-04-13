@@ -135,11 +135,11 @@ and matchAtStartRep k n line p =
 			if b1 then
 				if k = 0 then	
 					if n = 0 then (b1, m1, r1)
-					else let (b2, m2, r2) = matchAtStartRep k n-1 r1 p in
+					else let (b2, m2, r2) = matchAtStartRep k (n-1) r1 p in
 								if b2 then (b2, m1@m2, r2)
 								else (b1, m1, r1)
-				else let (b3,m3, r3) = matchAtStartRep k-1 n-1 r1 p in
-							if b3 then matchAtStartRep k-1 n-1 r3 p
+				else let (b3, m3, r3) = matchAtStartRep (k-1) (n-1) r1 p in
+							if b3 then matchAtStartRep (k-1) (n-1) r3 p
 							else (false, [], [])
 			else (false, [], [])
 ;;
@@ -154,7 +154,9 @@ let matchAtStart line re =
 (* firstMatch *)
 
 let rec firstMatchRE line re =
-    (false,[],[],[])
+    match re with
+		| Any -> 
+		| _ -> (false,[],[],[])
 ;;
 
 let firstMatch line re =
