@@ -250,12 +250,20 @@ let allMatchesFile ni re =
 
 (* allMatchesOverlap *)
 
+let rec prefixeOV pre1 pre2 list =
+		match list with
+		| [] -> []
+		| x::xs -> let (a, m, r) = x in
+									(pre1@pre2@a, m, r)::(prefixe pre1 [(List.hd m)] xs)
+;;
+
+
 let rec allMatchesOverlapRE line re =
     match line with
 		| [] -> []
 		|  _::_ -> let (b, a, m, r) = firstMatchRE line re in
 								if b 
-								then (a, m, r)::(prefixe a [(List.hd m)] (allMatchesOverlapRE (List.tl (m@r)) re))
+								then (a, m, r)::(prefixeOV a [(List.hd m)] (allMatchesOverlapRE ((List.tl m)@r) re))
 								else []
 ;;
 
