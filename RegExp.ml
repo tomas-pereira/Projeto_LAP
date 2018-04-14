@@ -188,14 +188,21 @@ let firstMatch line re =
 
 (* allMatches *)
 
+let rec prefixe pre list =
+		match list with
+		| [] -> []
+		| x::xs -> let (a, m, r) = x in
+									(pre@a, m, r)::(prefixe pre xs)
+;;
+
 let rec allMatchesRE line re =
     match line with
 		| [] -> []
-		| x::xs -> let (b, a, m, r) = firstMatchRE line re in
-								if b then [[x]@a, m, r]@allMatchesRE xs re
-								else allMatchesRE xs re
-								
+		| x::xs -> let (b1, a1, m1, r1) = firstMatchRE line re in
+								(allMatchesRE r1 re) @ (prefixe (a1@m1) (allMatchesRE r1 re))
+														
 ;;
+
 
 let allMatches line re =
     List.map
@@ -209,8 +216,9 @@ let allMatches line re =
 let rec replaceAllMatchesRE line rpl re =
     match line with
 		| [] -> []
-		| x::xs -> let [a, m, r] = allMatchesRE line re in
-								if m <> [] then a@m@replaceAllMatchesRE xs rpl re
+		| x::xs -> let (b, a, m, r) = firstMatchRE line re in
+								if b 
+								then a@rpl@(replaceAllMatchesRE r rpl re)
 								else replaceAllMatchesRE xs rpl re
 ;;
 
