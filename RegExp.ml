@@ -69,15 +69,15 @@ let rec matchAtStartStr line str_in_list =
 		[],_ -> (false, [], [])
 		| _,[] -> (true, [], line)
 		| x::xs,y::ys -> let(b, m, r) = matchAtStartStr xs ys in
-					if x=y && b then (b, y::m, r) 
-					else (false, [], [])
+											if x=y && b then (b, y::m, r) 
+											else (false, [], [])
 ;;
 
 let rec str_contain_elem str_in_list elem =
 		match str_in_list with
 		| [] -> false
 		| x::xs -> if x = elem then true 
-				else str_contain_elem xs elem
+							 else str_contain_elem xs elem
 ;;
 
 
@@ -188,19 +188,20 @@ let firstMatch line re =
 
 (* allMatches *)
 
-let rec prefixe pre list =
+let rec prefixe pre1 pre2 list =
 		match list with
 		| [] -> []
 		| x::xs -> let (a, m, r) = x in
-									(pre@a, m, r)::(prefixe pre xs)
+									(pre1@pre2@a, m, r)::(prefixe pre1 m xs)
 ;;
 
 let rec allMatchesRE line re =
     match line with
 		| [] -> []
-		| x::xs -> let (b1, a1, m1, r1) = firstMatchRE line re in
-								(allMatchesRE r1 re) @ (prefixe (a1@m1) (allMatchesRE r1 re))
-														
+		| _::_ -> let (b, a, m, r) = firstMatchRE line re in
+								if b 
+								then (a, m, r)::(prefixe a m (allMatchesRE r re))
+								else []
 ;;
 
 
@@ -211,15 +212,16 @@ let allMatches line re =
 ;;
 
 
-(* replaceAllMatches *)
+(* replaceAllMatches *)	
 
 let rec replaceAllMatchesRE line rpl re =
     match line with
 		| [] -> []
-		| x::xs -> let (b, a, m, r) = firstMatchRE line re in
-								if b 
-								then a@rpl@(replaceAllMatchesRE r rpl re)
-								else replaceAllMatchesRE xs rpl re
+		| x::xs -> let all = allMatchesRE line re in
+									(match all with
+									| [] -> line
+									| x::xs -> let (a, m, r) = x in
+																a@rpl@replaceAllMatchesRE r rpl re)
 ;;
 
 let replaceAllMatches line rpl re =
@@ -232,15 +234,26 @@ let replaceAllMatches line rpl re =
 
 (* allMatchesFile *)
 
+let rec treatFile file re = 
+		try 
+			let adv = input_line file in
+					(allMatches adv re) :: (allMatchesFileRE file re)
+			with End_of_file -> []
+;;
+
+
 let allMatchesFile ni re =
-    []
+    let file = open_in ni in
+				allMatchesFileRE file re
 ;;
 
 
 (* allMatchesOverlap *)
 
 let rec allMatchesOverlapRE line re =
-    []
+    match line with
+		| [] -> []
+		| x::xs -> 
 ;;
 
 let allMatchesOverlap line re =
