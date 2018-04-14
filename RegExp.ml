@@ -237,14 +237,14 @@ let replaceAllMatches line rpl re =
 let rec treatFile file re = 
 		try 
 			let adv = input_line file in
-					(allMatches adv re) :: (allMatchesFileRE file re)
+					(allMatches adv re) :: (treatFile file re)
 			with End_of_file -> []
 ;;
 
 
 let allMatchesFile ni re =
     let file = open_in ni in
-				allMatchesFileRE file re
+				treatFile file re
 ;;
 
 
@@ -253,7 +253,10 @@ let allMatchesFile ni re =
 let rec allMatchesOverlapRE line re =
     match line with
 		| [] -> []
-		| x::xs -> 
+		|  _::_ -> let (b, a, m, r) = firstMatchRE line re in
+								if b 
+								then (a, m, r)::(prefixe a [(List.hd m)] (allMatchesOverlapRE (List.tl (m@r)) re))
+								else []
 ;;
 
 let allMatchesOverlap line re =
