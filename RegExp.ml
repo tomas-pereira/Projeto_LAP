@@ -88,60 +88,77 @@ let rec matchAtStartRE line re =
       | Any -> (true, [List.hd line], List.tl line)
       | Str str -> matchAtStartStr line (list_of_string str)
 			| Class str -> (match line with
-						[] -> (false, [], [])
-						|x::xs -> if str_contain_elem (list_of_string str) x 
-								then (true, [x], xs)
-								else (false, [], []))
+													[] -> (false, [], [])
+													|x::xs -> if str_contain_elem (list_of_string str) x 
+																		then (true, [x], xs)
+																		else (false, [], []))
 			| NClass str -> (match line with
-						[] -> (false, [], [])
-						|x::xs -> if str_contain_elem (list_of_string str) x 
-								then (false, [], [])
-								else (true, [x], xs))
+													[] -> (false, [], [])
+													|x::xs -> if str_contain_elem (list_of_string str) x 
+																		then (false, [], [])
+																		else (true, [x], xs))
 			| Seq (p,q) -> let (b1, m1, r1) = matchAtStartRE line p in
-						if b1 then let (b2, m2, r2) = matchAtStartRE r1 q in
-							if b2 then (b2, m1@m2, r2)
-							else (false,[],[])
-						else (false,[],[])
+													if b1 then let (b2, m2, r2) = matchAtStartRE r1 q in
+														if b2 then (b2, m1@m2, r2)
+														else (false,[],[])
+													else (false,[],[])
 			| Or (p,q) -> let (b1, m1, r1) = matchAtStartRE line p in
-					let (b2, m2, r2) = matchAtStartRE line q in
-						if b1 && b2 
-						then 
-							if List.length m1 >= List.length m2 
-							then (b1, m1, r1)
-							else (b2, m2, r2)
-						else if b1 then (b1, m1, r1)
-						else if b2 then (b2, m2, r1)
-						else (false,[],[])
+													let (b2, m2, r2) = matchAtStartRE line q in
+														if b1 && b2 then
+															if List.length m1 >= List.length m2 
+															then (b1, m1, r1)
+															else (b2, m2, r2)
+														else if b1 then (b1, m1, r1)
+														else if b2 then (b2, m2, r1)
+														else (false,[],[])
 			| ZeroOrOne p -> let (b, m, r) = matchAtStartRE line p in 
-						if b then (b, m, r) 
-						else (true,[],line)
+													if b then (b, m, r) 
+													else (true,[],line)
 			| ZeroOrMore p -> let (b, m, r) = matchAtStartRE line p in
-						if b then matchAtStartRE r p
-						else (true,[],line)
+													if b then matchAtStartOM line p
+													else (true,[],line)
 			| Not p -> let (b, m, r) = matchAtStartRE line p in
-					if b then (false, [], [])
-					else (true, [], line)
-			| OneOrMore p -> let (b, m, r) = matchAtStartRE line p in
-						if b then matchAtStartRE r p
-						else (false, [], [])
-			| Repeat (k, n, p) -> if k > n then (false, [], [])
-						else if n = 0 then (true, [], line)
-						else matchAtStartRep k n line p
-			| _ -> (false, [], [])
+													if b then (false, [], [])
+													else (true, [], line)
+			| OneOrMore p -> matchAtStartOM line p
+			| Repeat (k, n, p) ->  matchAtStartRep k n line p
 
 
 and matchAtStartRep k n line p = 
-	let (b1, m1, r1) = matchAtStartRE line p in
-			if b1 then
-				if k = 0 then	
-					if n = 0 then (b1, m1, r1)
-					else let (b2, m2, r2) = matchAtStartRep k (n-1) r1 p in
+	if k > n then (false, [], [])
+	else
+  	let (b1, m1, r1) = matchAtStartRE line p in 
+  		if k <> 0 then 
+				if k >= 1 then
+					if b1 then
+  					let (b2, m2, r2) = matchAtStartRep (k-1) (n-1) r1 p in
+  						if b2 then (b2, m1@m2, r2)
+  						else (false, [], [])
+					else (false, [], [])
+				else
+					if b1 then
+						if n > 1 then
+							let (b2, m2, r2) = matchAtStartRep (k-1) (n-1) r1 p in
 								if b2 then (b2, m1@m2, r2)
 								else (b1, m1, r1)
-				else let (b3, m3, r3) = matchAtStartRep (k-1) (n-1) r1 p in
-							if b3 then matchAtStartRep (k-1) (n-1) r3 p
-							else (false, [], [])
-			else (false, [], [])
+						else (b1, m1, r1)
+					else (true, m1, line)
+			else 
+				if b1 && n > 1 then
+					let (b2, m2, r2) = matchAtStartRep (k-1) (n-1) r1 p in
+						if b2 then (b2, m1@m2, r2) 
+						else (b1, m1, r1)
+				else (true, [], line)
+
+
+and matchAtStartOM line p =
+	let (b1, m1, r1) = matchAtStartRE line p in
+		if b1 then let (b2, m2, r2) = matchAtStartOM r1 p in
+			if b2 then (b2, m1@m2, r2)
+			else (b1, m1, r1)
+		else (false, [], [])
+		
+	
 ;;
 
 
@@ -154,9 +171,13 @@ let matchAtStart line re =
 (* firstMatch *)
 
 let rec firstMatchRE line re =
-    match re with
-		| Any -> 
-		| _ -> (false,[],[],[])
+    match line with
+		| [] -> (false, [], [], [])
+		| x::xs -> let (b, m, r) = matchAtStartRE line re in
+								if b then (b, [], m, r) 
+								else let (b2, a, m2, r2) = firstMatchRE xs re in
+											if b2 then (b2, [x]@a, m@m2, r2)
+											else firstMatchRE r2 re
 ;;
 
 let firstMatch line re =
@@ -168,7 +189,12 @@ let firstMatch line re =
 (* allMatches *)
 
 let rec allMatchesRE line re =
-    []
+    match line with
+		| [] -> []
+		| x::xs -> let (b, a, m, r) = firstMatchRE line re in
+								if b then [[x]@a, m, r]@allMatchesRE xs re
+								else allMatchesRE xs re
+								
 ;;
 
 let allMatches line re =
@@ -181,7 +207,11 @@ let allMatches line re =
 (* replaceAllMatches *)
 
 let rec replaceAllMatchesRE line rpl re =
-    []
+    match line with
+		| [] -> []
+		| x::xs -> let [a, m, r] = allMatchesRE line re in
+								if m <> [] then a@m@replaceAllMatchesRE xs rpl re
+								else replaceAllMatchesRE xs rpl re
 ;;
 
 let replaceAllMatches line rpl re =
